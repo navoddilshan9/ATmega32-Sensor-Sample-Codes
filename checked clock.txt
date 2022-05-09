@@ -1,0 +1,59 @@
+/*
+ * digital_couter.c
+ *
+ * Created: 11/14/2020 9:18:48 AM
+ * Author : Vickey
+ */ 
+#define F_CPU 16000000UL
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#include "MrLCDATmega32.h"
+float count=0;
+volatile uint8_t tot_overflow;
+int main(void)
+{
+	Initialise();
+	timer0_int();
+	while(1){
+		while(clk()!=1);
+		count++;
+		
+		display(count);
+	}
+	
+}
+int clk(){
+	if (tot_overflow>=24)
+	{
+		if(TCNT0>=106){
+			TCNT0=0;
+			tot_overflow=0;
+			return 1;
+		}
+	}
+		return 0;
+}
+void display(float rate){
+	
+	char out_str[30] = {0};
+	sprintf(out_str, " %.2lf\r\n", rate);
+	Send_A_String("Water FLow Rate:");
+	GoToMrLCDLocation(2,2);
+	//itoa(out_str,show_a,10);
+	Send_A_String(out_str);
+	Send_A_String(" ");
+	GoToMrLCDLocation(8,2);
+	Send_A_String("liter/min");
+	GoToMrLCDLocation(1,1);
+	
+}
+void timer0_int(){
+	TCCR0 |= 1<<CS02;
+	TCNT0=0;
+	TIMSK |= 1<<TOIE0;
+	sei();
+	tot_overflow=0;
+}
+ISR(TIMER0_OVF_vect){
+	tot_overflow++;
+}
